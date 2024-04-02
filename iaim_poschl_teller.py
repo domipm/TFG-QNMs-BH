@@ -24,8 +24,6 @@ def series_coeff(a,x,x0):
 l0 = (2*y*(1-I*w))/(1-y**2)
 s0 = (1-2*I*w-2*w**2)/(2*(1-y**2))
 
-#print(series_coeff(l0,y,0))
-
 #MATRIX OF COEFFICIENTS OF SERIES EXPANSION
 C = np.zeros((N,N),dtype=object)
 D = np.zeros((N,N),dtype=object)
