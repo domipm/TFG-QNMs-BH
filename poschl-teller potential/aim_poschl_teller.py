@@ -1,7 +1,21 @@
 import numpy as np
-import matplotlib.pyplot as plt
+import time
 
 from sympy import *
+
+'''
+AIM algorithm: 
+-   Begin by defining initial parameters lambda_0 and s_0
+-   Calculate necessary derivatives of "previous" parameters
+    lambda'_(n-1) and s'_(n-1)
+-   Calculate new parameters lambda_n and s_n in terms of previous
+    parameters and their derivatives
+-   Obtain delta (quantization condition)
+-   Evaluate at point of interest
+-   Solve polynomial in w (omega) algebraically and filter solutions
+'''
+
+start_T = time.time() #"Stopwatch" begin
 
 #Number of iterations to perform
 N = 5
@@ -23,18 +37,6 @@ sp = np.empty(N,dtype=object)
 #Initial parameters (specific to Poschl-Teller potential)
 l[0] = (2*y*(1-I*w))/(1-y**2)
 s[0] = (1-2*I*w-2*w**2)/(2*(1-y**2))
-
-'''
-AIM algorithm: 
--   Calculate derivative of previous parameters
-    (lambda'_(n-1) and s'_(n-1))
--   Calculate new parameters
-    (lambda_n and s_n in terms of previous
-    params. and their derivatives)
--   Obtain delta (quantization condition)
--   Evaluate at point of interest (should be indep.)
--   Solve polynomial in w (omega) and filter sols.
-'''
 
 for n in range(1,N):
 
@@ -67,5 +69,6 @@ for n in range(1,N):
         if re(sols[i]) > 0 and  im(sols[i]) < 0:
             print("w_" + str(i+1) + " = " + str(sols[i]))
 
-    print("\n")
-
+end_T = time.time() #"Stopwatch" end
+#Display total computation time
+print("\nTotal computation time: " + str(end_T - start_T) + " s\n")
