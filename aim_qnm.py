@@ -55,8 +55,7 @@ Tested for:
 
 '''
 
-#   CLASS FOR SOLVING FOR QNMs VIA AIM METHOD
-class aim_qnm(object):
+class aim_solver(object):
 
     #   Create AIM object with the necessary initial parameters, and create necessary arrays for lambda_n, s_n and derivatives
     #   Initial parameters depend only on symbols (x,y,...) defined in main code as necessary, with all numeric substitutions
@@ -64,16 +63,11 @@ class aim_qnm(object):
 
     def __init__(self, lambda_0, s_0, n_iter): 
 
-        #   Arrays for lambda and s parameters
-        self.l = np.empty(n_iter,dtype=object)
-        self.s = np.empty(n_iter,dtype=object)
+        
         #   Define initial parameters
-        self.l[0] = lambda_0
-        self.s[0] = s_0
-        #   Arrays for lambda' and s' derivative of the parameters
-        self.lp = np.empty(n_iter,dtype=object)
-        self.sp = np.empty(n_iter,dtype=object)
-        #   Number of iteratios (size of arrays) to perform
+        self.lambda_0 = lambda_0
+        self.s_0 = s_0
+        #   Number of iterations (size of arrays / matrices) to perform
         self.n_iter = n_iter
 
         return
@@ -90,7 +84,18 @@ class aim_qnm(object):
     -   Solve polynomial in w (omega) algebraically and filter solutions
     '''
     
+    #   Function to initialize all arrays needed for the AIM algorithm
     def aim_init(self):
+
+        #   Arrays for lambda and s parameters
+        self.l = np.empty(self.n_iter,dtype=object)
+        self.s = np.empty(self.n_iter,dtype=object)
+        #   Initialize array values
+        self.l[0] = self.lambda_0
+        self.s[0] = self.s_0
+        #   Arrays for lambda' and s' derivative of the parameters
+        self.lp = np.empty(self.n_iter,dtype=object)
+        self.sp = np.empty(self.n_iter,dtype=object)
 
         return
     
@@ -144,18 +149,14 @@ class aim_qnm(object):
                 return
             
 
-    '''
-    IAIM (improved AIM) algorithm: 
-    -   Calculate series expansion of lambda_0 and s_0 coefficients
-        around the point in which we will be evaluating
-    -   Create matrices C,D and store initial coefficients
-    -   Compute the necessary coefficients using the recursion relations
-    -   From the coefficients in the first row in the two last columns,
-        apply the quantization condition
-    -   Solve the obtained polynomial in w (omega) algebraically
-        and filter solutions
-    '''
-    def iaim_init():
-
-        return
-    
+'''
+IAIM (improved AIM) algorithm: 
+-   Calculate series expansion of lambda_0 and s_0 coefficients
+    around the point in which we will be evaluating
+-   Create matrices C,D and store initial coefficients
+-   Compute the necessary coefficients using the recursion relations
+-   From the coefficients in the first row in the two last columns,
+    apply the quantization condition
+-   Solve the obtained polynomial in w (omega) algebraically
+    and filter solutions
+''' 
