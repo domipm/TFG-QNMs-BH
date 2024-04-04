@@ -99,13 +99,34 @@ class aim_solver(object):
 
         return
     
+    #   Function to display results from AIM algorithm
+    def aim_display(self, sols, display_all):
 
+        #   Display all solutions
+        if (display_all == True): print("All solutions: " + "\n" + str(sols) + "\n")
+
+        #   Filter solutions by positive real and negative imaginary part
+        f_sols = []
+        for i in range(len(sols)):
+            if sym.re(sols[i]) > 0 and  sym.im(sols[i]) < 0:
+                f_sols.append(sols[i])
+        #   Display all filtered solutions
+        if (display_all == True): print("Filtered solutions:\n" + str(f_sols) + "\n")
+
+        #   Order solutions by imaginary part
+        sols_sorted = sorted(f_sols, key = lambda x: sym.Abs(sym.im(x)))
+        #   Display sorted solution by mode number (n)
+        for i in range(len(sols_sorted)):
+            print("w_" + str(i) + " = " +  str(sols_sorted[i]))
+
+        return
+    
     #   Function that performs the AIM algorithm, calculating all parameters lambda_n, s_n and derivatives
     #   Params: display (True/False) -> Shows solution for each step
     #           solver (alg/num)     -> Whether to find roots algebraically or numerically 
     #           x, x0 (symbol, num)  -> Variable to differentiate and evaluation point
 
-    def aim_solve(self, display_all, solver, x, x0):
+    def aim_solve(self, solver, x, x0, display_all):
 
         for n in range(1, self.n_iter):
 
@@ -127,17 +148,10 @@ class aim_solver(object):
             p = d.subs(x,x0)
 
             #   Algebraic polynomial root solver (via sympy)
-            if (solver == "alg"):
-
-                #   We find all solutions to the polynomial in w (omega)
-                sols = sym.solve(p)
-                if (display_all == True): print("All solutions: " + "\n" + str(sols) + "\n")
-                #   Filter solutions by taking the real part to be positive
-                #   And imaginary part to be negative (dampened oscillations)
-                print("Filtered solutions:")
-                for i in range(len(sols)):
-                    if sym.re(sols[i]) > 0 and  sym.im(sols[i]) < 0:
-                        print("w_" + str(i+1) + " = " + str(sols[i]))
+            if (solver == "alg"): 
+                
+                sols = sym.solve(p) #   Solve the characteristic polynomial
+                self.aim_display(sols, display_all) #   Display the solution for each iteration
 
             elif (solver == "num"):
 

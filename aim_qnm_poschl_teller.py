@@ -18,9 +18,9 @@ s0 = (1-2*I*w-2*w**2)/(2*(1-y**2))
 
 start = time.time()
 
-aim = aim.aim_solver(l0,s0,n)
+aim = aim.aim_solver(l0,s0,n+1)
 aim.aim_init()
-aim.aim_solve(display_all=True,solver="alg",x=y,x0=y0)
+aim.aim_solve(solver="num",x=y,x0=y0,display_all=False)
 
 stop = time.time()
 
