@@ -126,15 +126,15 @@ class aim_solver(object):
         return
     
     #   AIM algorithm solver (default solver sympy.nroots, display_all true by default)
-    def aim_solve(self, x, x0, display_all = "True", solver="num"):
+    def aim_solve(self, display_all = "True", solver="num"):
 
         for n in range(1, self.n_iter):
 
             print("\n*** AIM ITERATION n=" + str(n) + " ***\n")
 
             #   Calculate the previous derivatives
-            self.lp[n-1] = sym.diff(self.l[n-1],x)
-            self.sp[n-1] = sym.diff(self.s[n-1],x)
+            self.lp[n-1] = sym.diff(self.l[n-1],self.x)
+            self.sp[n-1] = sym.diff(self.s[n-1],self.x)
 
             #   Calculate the new parameters lambda_n and s_n
             #   Using the previous lambda_n-1, s_n-1, and derivatives lambda'_n-1 and s'_n-1
@@ -142,7 +142,7 @@ class aim_solver(object):
             self.s[n] = self.sp[n-1] + self.s[0]*self.l[n-1]
 
             #   Quantization condition delta / characteristic polynomial after substitution
-            d = (self.s[n]*self.l[n-1] - self.s[n-1]*self.l[n]).subs(x,x0)
+            d = (self.s[n]*self.l[n-1] - self.s[n-1]*self.l[n]).subs(self.x,self.x0)
 
             #   Algebraic equation solver (via sympy)
             if (solver == "alg"):

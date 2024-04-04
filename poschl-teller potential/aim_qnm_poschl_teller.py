@@ -25,7 +25,7 @@ start = time.time()
 
 aim = aim.aim_solver(l0,s0,y,y0,n)
 aim.aim_init()
-aim.aim_solve(x=y,x0=y0,solver="num",display_all=False)
+aim.aim_solve(solver="num",display_all=False)
 
 stop = time.time()
 
