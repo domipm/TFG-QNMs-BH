@@ -57,6 +57,8 @@ Tested for:
 
 class aim_solver(object):
 
+    w = sym.symbols("\omega") #  Symbol representing complex frequency of qnms
+
     #   Create AIM object with the necessary initial parameters, and create necessary arrays for lambda_n, s_n and derivatives
     #   Initial parameters depend only on symbols (x,y,...) defined in main code as necessary, with all numeric substitutions
     #   already performed
@@ -123,10 +125,9 @@ class aim_solver(object):
     
     #   Function that performs the AIM algorithm, calculating all parameters lambda_n, s_n and derivatives
     #   Params: display (True/False) -> Shows solution for each step
-    #           solver (alg/num)     -> Whether to find roots algebraically or numerically 
     #           x, x0 (symbol, num)  -> Variable to differentiate and evaluation point
 
-    def aim_solve(self, solver, x, x0, display_all):
+    def aim_alg_solve(self, x, x0, display_all):
 
         for n in range(1, self.n_iter):
 
@@ -147,21 +148,37 @@ class aim_solver(object):
             #   "Characteristic polynomial" obtained by evaluating quantization condition
             p = d.subs(x,x0)
 
-            #   Algebraic polynomial root solver (via sympy)
-            if (solver == "alg"): 
-                
-                sols = sym.solve(p) #   Solve the characteristic polynomial
-                self.aim_display(sols, display_all) #   Display the solution for each iteration
-
-            elif (solver == "num"):
-
-                print("Numerical solver")
-
-            else:
-
-                print("ERROR: Solver not found")
-                return
+            #   Algebraic equation solver (via sympy)
+            sols = sym.solve(p) #   Solve the characteristic polynomial
+            self.aim_display(sols, display_all) #   Display the solution for each iteration
             
+    def aim_num_solve(self, x, x0, display_all):
+
+        for n in range(1, self.n_iter):
+
+            print("\n*** ITERATION n=" + str(n) + " ***\n")
+
+            #   Calculate the previous derivatives
+            self.lp[n-1] = sym.diff(self.l[n-1],x)
+            self.sp[n-1] = sym.diff(self.s[n-1],x)
+
+            #   Calculate the new parameters lambda_n and s_n
+            #   Using the previous lambda_n-1, s_n-1, and derivatives lambda'_n-1 and s'_n-1
+            self.l[n] = self.lp[n-1] + self.s[n-1] + self.l[0]*self.l[n-1]
+            self.s[n] = self.sp[n-1] + self.s[0]*self.l[n-1]
+
+            #   Quantization condition delta
+            d = self.s[n]*self.l[n-1] - self.s[n-1]*self.l[n]
+
+            #   "Characteristic polynomial" obtained by evaluating quantization condition
+            p = d.subs(x,x0)
+
+            #   Construct a sympy polynomial
+            ppol = sym.Poly(p,self.w)
+            
+            #   Numeric polynomial root solver (via sympy)
+            sols = sym.nroots(ppol) #   Find roots of characteristic polynomial
+            self.aim_display(sols, display_all) #   Display the solution for each iteration
 
 '''
 IAIM (improved AIM) algorithm: 

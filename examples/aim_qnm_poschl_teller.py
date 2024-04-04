@@ -1,11 +1,14 @@
-import aim_qnm as aim
 import sympy as sym
 import time
+import sys
+
+sys.path.append('../')
+import aim_qnm as aim
 
 #Complex variable
 I = sym.I
 #Number of iterations to perform
-n = 5
+n = 10
 #Where to evaluate the functions
 y0 = 0
 #Symbolic variable definitions
@@ -20,7 +23,7 @@ start = time.time()
 
 aim = aim.aim_solver(l0,s0,n+1)
 aim.aim_init()
-aim.aim_solve(solver="num",x=y,x0=y0,display_all=False)
+aim.aim_num_solve(x=y,x0=y0,display_all=False)
 
 stop = time.time()
 
