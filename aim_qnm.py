@@ -60,17 +60,19 @@ class aim_solver(object):
     w = sym.symbols("\omega") #  Symbol representing complex frequency of qnms
 
     #   Create AIM object with the necessary initial parameters, and create necessary arrays for lambda_n, s_n and derivatives
-    #   Initial parameters depend only on symbols (x,y,...) defined in main code as necessary, with all numeric substitutions
-    #   already performed
+    #   Initial parameters depend only on symbols (x,y,...) defined in main code as necessary, with all numeric substitutions already performed
 
-    def __init__(self, lambda_0, s_0, n_iter): 
+    def __init__(self, lambda_0, s_0, x, x0, n_iter): 
 
-        
         #   Define initial parameters
         self.lambda_0 = lambda_0
         self.s_0 = s_0
         #   Number of iterations (size of arrays / matrices) to perform
         self.n_iter = n_iter
+
+        #   Position coordinate and point of evaluation
+        self.x = x
+        self.x0 = x0
 
         return
     
@@ -123,15 +125,12 @@ class aim_solver(object):
 
         return
     
-    #   Function that performs the AIM algorithm, calculating all parameters lambda_n, s_n and derivatives
-    #   Params: display (True/False) -> Shows solution for each step
-    #           x, x0 (symbol, num)  -> Variable to differentiate and evaluation point
-
-    def aim_alg_solve(self, x, x0, display_all):
+    #   AIM algorithm solver (default solver sympy.nroots, display_all true by default)
+    def aim_solve(self, x, x0, display_all = "True", solver="num"):
 
         for n in range(1, self.n_iter):
 
-            print("\n*** ITERATION n=" + str(n) + " ***\n")
+            print("\n*** AIM ITERATION n=" + str(n) + " ***\n")
 
             #   Calculate the previous derivatives
             self.lp[n-1] = sym.diff(self.l[n-1],x)
@@ -142,52 +141,112 @@ class aim_solver(object):
             self.l[n] = self.lp[n-1] + self.s[n-1] + self.l[0]*self.l[n-1]
             self.s[n] = self.sp[n-1] + self.s[0]*self.l[n-1]
 
-            #   Quantization condition delta
-            d = self.s[n]*self.l[n-1] - self.s[n-1]*self.l[n]
-
-            #   "Characteristic polynomial" obtained by evaluating quantization condition
-            p = d.subs(x,x0)
+            #   Quantization condition delta / characteristic polynomial after substitution
+            d = (self.s[n]*self.l[n-1] - self.s[n-1]*self.l[n]).subs(x,x0)
 
             #   Algebraic equation solver (via sympy)
-            sols = sym.solve(p) #   Solve the characteristic polynomial
-            self.aim_display(sols, display_all) #   Display the solution for each iteration
-            
-    def aim_num_solve(self, x, x0, display_all):
+            if (solver == "alg"):
 
-        for n in range(1, self.n_iter):
-
-            print("\n*** ITERATION n=" + str(n) + " ***\n")
-
-            #   Calculate the previous derivatives
-            self.lp[n-1] = sym.diff(self.l[n-1],x)
-            self.sp[n-1] = sym.diff(self.s[n-1],x)
-
-            #   Calculate the new parameters lambda_n and s_n
-            #   Using the previous lambda_n-1, s_n-1, and derivatives lambda'_n-1 and s'_n-1
-            self.l[n] = self.lp[n-1] + self.s[n-1] + self.l[0]*self.l[n-1]
-            self.s[n] = self.sp[n-1] + self.s[0]*self.l[n-1]
-
-            #   Quantization condition delta
-            d = self.s[n]*self.l[n-1] - self.s[n-1]*self.l[n]
-
-            #   "Characteristic polynomial" obtained by evaluating quantization condition
-            p = d.subs(x,x0)
-
-            #   Construct a sympy polynomial
-            ppol = sym.Poly(p,self.w)
+                sols = sym.solve(d) #   Solve the characteristic polynomial
+                self.aim_display(sols, display_all) #   Display the solution for each iteration
             
             #   Numeric polynomial root solver (via sympy)
-            sols = sym.nroots(ppol) #   Find roots of characteristic polynomial
-            self.aim_display(sols, display_all) #   Display the solution for each iteration
+            if (solver == "num"):
 
-'''
-IAIM (improved AIM) algorithm: 
--   Calculate series expansion of lambda_0 and s_0 coefficients
-    around the point in which we will be evaluating
--   Create matrices C,D and store initial coefficients
--   Compute the necessary coefficients using the recursion relations
--   From the coefficients in the first row in the two last columns,
-    apply the quantization condition
--   Solve the obtained polynomial in w (omega) algebraically
-    and filter solutions
-''' 
+                #   Construct a sympy polynomial
+                d_pol = sym.Poly(d, self.w)
+                sols = sym.nroots(d_pol) #   Find roots of characteristic polynomial
+                self.aim_display(sols, display_all) #   Display the solution for each iteration
+
+    '''
+    IAIM (improved AIM) algorithm: 
+    -   Calculate series expansion of lambda_0 and s_0 coefficients
+        around the point in which we will be evaluating
+    -   Create matrices C,D and store initial coefficients
+    -   Compute the necessary coefficients using the recursion relations
+    -   From the coefficients in the first row in the two last columns,
+        apply the quantization condition
+    -   Solve the obtained polynomial in w (omega) algebraically
+        and filter solutions
+    ''' 
+
+    #FUNCTION SERIES EXPANSION, REMOVE HIGHER ORDER, RETURN ARRAY WITH COEFFICIENTS
+    #Params: func. a, variable x, around point x0, order N (fixed)
+    def iaim_series_coeff(self,a,x,x0):
+
+        a_series = sym.series(a,x,x0,self.n_iter).removeO()
+        coeff = np.array(a_series.subs(x,x0))
+        for i in range(1,self.n_iter):
+            coeff = np.append(coeff, a_series.coeff(x**i))
+        return coeff
+
+    def iaim_init(self):
+
+        #   Matrix of coefficients needed
+        self.C = np.zeros((self.n_iter,self.n_iter),dtype=object)
+        self.D = np.zeros((self.n_iter,self.n_iter),dtype=object)
+        #   First column initialized to coefficients of series expansion
+        self.C[:,0] = self.iaim_series_coeff(self.lambda_0,self.x,self.x0)
+        self.D[:,0] = self.iaim_series_coeff(self.s_0,self.x,self.x0)
+
+        return
+    
+    def iaim_display(self, sols, display_all):
+
+        print("\n*** IAIM ITERATIONS n=" + str(self.n_iter) + "***")
+
+        #   Display all solutions
+        if (display_all == True): print("\nAll solutions:" + str(sols))
+
+        #   Filter solutions by positive real and negative imaginary part
+        f_sols = []
+        for i in range(len(sols)):
+            if sym.re(sols[i]) > 0 and  sym.im(sols[i]) < 0:
+                f_sols.append(sols[i])
+
+        #   Display filtered (unordered) solutions
+        if (display_all == True): print("\nFiltered solutions:" + str(f_sols) + "\n")
+
+        #   Order solutions by imaginary part
+        sols_sorted = sorted(f_sols, key = lambda x: sym.Abs(sym.im(x)))
+        #   Display sorted solution by mode number (n)
+        for i in range(len(sols_sorted)):
+            print("w_" + str(i) + " = " +  str(sols_sorted[i]))
+
+        return
+    
+    def iaim_solve(self, solver="num", display_all=True):
+
+        #   Compute iteratively coefficients / matrix elements
+        for n in range(0,self.n_iter-1):
+            for i in range(0,self.n_iter):
+                if (i+1 == self.n_iter):
+                    self.D[i,n+1] = 0
+                    self.C[i,n+1] = self.D[i,n]
+                else:
+                    self.D[i,n+1] = (i+1)*self.D[i+1,n]
+                    self.C[i,n+1] = (i+1)*self.C[i+1,n]+self.D[i,n]
+                for k in range(0,i+1):
+                    self.C[i,n+1] = self.C[i,n+1] + self.C[k,0]*self.C[i-k,n]
+                    self.D[i,n+1] = self.D[i,n+1] + self.D[k,0]*self.C[i-k,n]
+
+        #   Apply quantization condition / characteristic polynomial
+        d = self.D[0,n]*self.C[0,n-1] - self.D[0,n-1]*self.C[0,n]
+
+        #   Algebraic equation solver (via sympy)
+        if (solver == "alg"):
+
+            sols = sym.solve(d) #   Solve the characteristic polynomial
+
+            self.iaim_display(sols, display_all) #   Display the solution for each iteration
+            
+        #   Numeric polynomial root solver (via sympy)
+        if (solver == "num"):
+
+            #   Construct a sympy polynomial
+            d_pol = sym.Poly(d, self.w)
+            sols = sym.nroots(d_pol) #   Find roots of characteristic polynomial
+            self.iaim_display(sols, display_all) #   Display the solution for each iteration
+    
+
+        return

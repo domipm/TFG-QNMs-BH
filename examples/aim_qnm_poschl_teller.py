@@ -19,12 +19,25 @@ w = sym.symbols("\omega")
 l0 = (2*y*(1-I*w))/(1-y**2)
 s0 = (1-2*I*w-2*w**2)/(2*(1-y**2))
 
+#AIM ALGORITHM
+
 start = time.time()
 
-aim = aim.aim_solver(l0,s0,n+1)
+aim = aim.aim_solver(l0,s0,y,y0,n)
 aim.aim_init()
-aim.aim_num_solve(x=y,x0=y0,display_all=False)
+aim.aim_solve(x=y,x0=y0,solver="num",display_all=False)
 
 stop = time.time()
 
 print("\nComputation time (AIM Method): ", str(stop-start) + "\n")
+
+#IAIM ALGORITHM
+
+start = time.time()
+
+aim.iaim_init() #Initialize IAIM algorithm with same parameters as AIM class object
+aim.iaim_solve(solver="num", display_all=True)
+
+stop = time.time()
+
+print("\nComputation time (IAIM Method): ", str(stop-start) + "\n")
