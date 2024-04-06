@@ -126,7 +126,7 @@ class aim_solver(object):
         return
     
     #   AIM algorithm solver (default solver sympy.nroots, display_all true by default)
-    def aim_solve(self, display_all = "True", solver="num"):
+    def aim_solve(self, display_all = "True", solver="num", print_delta=False):
 
         for n in range(1, self.n_iter):
 
@@ -143,6 +143,7 @@ class aim_solver(object):
 
             #   Quantization condition delta / characteristic polynomial after substitution
             d = (self.s[n]*self.l[n-1] - self.s[n-1]*self.l[n]).subs(self.x,self.x0)
+            if (print_delta == True): print(d.expand())
 
             #   Algebraic equation solver (via sympy)
             if (solver == "alg"):
@@ -174,10 +175,11 @@ class aim_solver(object):
     #Params: func. a, variable x, around point x0, order N (fixed)
     def iaim_series_coeff(self,a,x,x0):
 
-        a_series = sym.series(a,x,x0,self.n_iter).removeO()
+        a_series = sym.series(a,x,x0,self.n_iter).removeO().expand()
         coeff = np.array(a_series.subs(x,x0))
         for i in range(1,self.n_iter):
             coeff = np.append(coeff, a_series.coeff(x**i))
+
         return coeff
 
     def iaim_init(self):
@@ -215,7 +217,7 @@ class aim_solver(object):
 
         return
     
-    def iaim_solve(self, solver="num", display_all=True):
+    def iaim_solve(self, solver="num", display_all=True, print_delta=False):
 
         #   Compute iteratively coefficients / matrix elements
         for n in range(0,self.n_iter-1):
@@ -232,6 +234,7 @@ class aim_solver(object):
 
         #   Apply quantization condition / characteristic polynomial
         d = self.D[0,n]*self.C[0,n-1] - self.D[0,n-1]*self.C[0,n]
+        if (print_delta == True): print(d.expand())
 
         #   Algebraic equation solver (via sympy)
         if (solver == "alg"):
@@ -245,7 +248,7 @@ class aim_solver(object):
 
             #   Construct a sympy polynomial
             d_pol = sym.Poly(d, self.w)
-            sols = sym.nroots(d_pol) #   Find roots of characteristic polynomial
+            sols = sym.nroots(d_pol, n=8, maxsteps=300, cleanup=True) #   Find roots of characteristic polynomial
             self.iaim_display(sols, display_all) #   Display the solution for each iteration
     
 
