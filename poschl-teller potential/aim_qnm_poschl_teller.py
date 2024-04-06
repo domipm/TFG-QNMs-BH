@@ -8,7 +8,7 @@ import aim_qnm as aim
 #Complex variable
 I = sym.I
 #Number of iterations to perform
-n = 5
+n = 10
 #Where to evaluate the functions
 y0 = 0
 #Symbolic variable definitions

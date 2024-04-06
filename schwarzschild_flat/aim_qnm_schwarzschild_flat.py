@@ -27,15 +27,19 @@ def max_point(m,l,s):
 
 #Where to evaluate (maximum of potential?)
 y0 = max_point(1,2,0).item()
-y0 = 0.32242 #Numerical value (truncate decimals!)
+#y0 = 0.32242 #Numerical value (truncate decimals!)
 
 #Asymptotically Flat Schwarzschild Initial Parameters (lambda_0 and s_0)
 l0 = (4*m*I*w*(2*y**2 - 4*y + 1) - (1 - 3*y)*(1-y) ) / (y*(1-y)**2) 
 s0 = ( 16*m**2*w**2*(y-2) - 8*m*I*w*(1-y) + l*(l+1) + (1-s**2)*(1-y) ) / ( y*(1-y)**2 )
 
-#Substitutions (M=1, l=2, s=0)
-l0 = l0.subs(m,1).subs(l,2).subs(s,0)
-s0 = s0.subs(m,1).subs(l,2).subs(s,0)
+#Numeric parameters (M=1, l=2, s=0)
+m_val = 1
+l_val = 2
+s_val = 2
+#Substitute
+l0 = l0.subs(m,m_val).subs(l,l_val).subs(s,s_val)
+s0 = s0.subs(m,m_val).subs(l,l_val).subs(s,s_val)
 
 #AIM ALGORITHM
 
@@ -43,7 +47,7 @@ start = time.time()
 
 aim = aim.aim_solver(l0,s0,x=y,x0=0.322,n_iter=n)
 aim.aim_init()
-aim.aim_solve(solver="num",display_all=False)
+aim.aim_solve(solver="num", display_all=False, print_delta=False)
 
 stop = time.time()
 
@@ -54,7 +58,7 @@ print("\nComputation time (AIM Method): ", str(stop-start) + "\n")
 start = time.time()
 
 aim.iaim_init() #Initialize IAIM algorithm with same parameters as AIM class object
-aim.iaim_solve(solver="num", display_all=False, print_delta=True)
+aim.iaim_solve(solver="num", display_all=False, print_delta=False)
 
 stop = time.time()
 
