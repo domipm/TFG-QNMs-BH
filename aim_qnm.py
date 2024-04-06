@@ -3,9 +3,9 @@ import numpy as np      #   Used for numerical calculations
 import sympy as sym     #   Used for symbolic calculations: Series expansion,
 import time             #   Used to calculate computation times in critical parts
                         #   (better to do it in main code)
+import symengine as se  #   Used for derivatives (faster than sympy)
 
 #   Supposedly faster/more precise, unused for now
-import symengine as se
 import flint as fl
 
 '''
@@ -18,41 +18,6 @@ d^2/dx^2 psi(x) = lambda_0(x) d/dx psi(x) + s_0(x) psi(x)
 Therefore, we have to compute the parameters lambda_0 and s_0 beforehand manually
 (rewriting the potential in appropriate coordinates and including explicitly boundary conditions
 into the solution, that is, incoming waves at horizon and outgoing at infinity)
-
-(Possible improvement: code to compute lambda_0 and s_0 for any kind of potential)
-
-Inputs / Initial parameters:
-
-    -   lambda_0, s_0 - > Expressions of initial parameters lambda_0 and s_0 in terms of only numeric values and symbolic coordinate (x)
-    -   x_0           - > Point of evaluation (x0) around which to perform series expansion / substitutions
-
-    ~   (Perform all substitutions in main code) Numeric values of all parameters included in lambda_0 and s_0 (such as mass, spin, angular momentum, etc.)
-
-Options:
-
-    -   re_sign, im_sign - > What solutions to filter (positive real part, negative imaginary, etc.)
-    -   alg = sym/num    - > What algorithm to use to solve the polynomial (algebraic/symbolic or numeric solutions)  
-    -   n_iter           - > Number of iterations to perform
-    -   prec             - > Decimal places to display
-
-Outputs:
-
-    -   Array of all filtered/unfiltered solutions (complex frequencies omega) ordered by mode number (n)
-    -   Total computation time
-    -   Text update that ensures program is not stuck in loop
-    -   Optional additional parameters/values of interest
-    -   Write to file
-
-Algorithms implemented:
-
-    * Asymptotic Iteration Method (AIM)
-    
-    * Improves Asymptotic Iteration Method (IAIM)
-
-Tested for:
-
-    -   ...
-
 '''
 
 class aim_solver(object):
@@ -61,7 +26,6 @@ class aim_solver(object):
 
     #   Create AIM object with the necessary initial parameters, and create necessary arrays for lambda_n, s_n and derivatives
     #   Initial parameters depend only on symbols (x,y,...) defined in main code as necessary, with all numeric substitutions already performed
-
     def __init__(self, lambda_0, s_0, x, x0, n_iter): 
 
         #   Define initial parameters
@@ -69,12 +33,9 @@ class aim_solver(object):
         self.s_0 = s_0
         #   Number of iterations (size of arrays / matrices) to perform
         self.n_iter = n_iter
-
         #   Position coordinate and point of evaluation
         self.x = x
         self.x0 = x0
-
-        return
     
     '''
     AIM algorithm: 
@@ -84,8 +45,8 @@ class aim_solver(object):
     -   Calculate new parameters lambda_n and s_n in terms of previous
         parameters and their derivatives
     -   Obtain delta (quantization condition)
-    -   Evaluate at point of interest
-    -   Solve polynomial in w (omega) algebraically and filter solutions
+    -   Evaluate at point of interest (maximum of potential)
+    -   Solve polynomial in w (omega) and filter solutions
     '''
     
     #   Function to initialize all arrays needed for the AIM algorithm
@@ -100,11 +61,11 @@ class aim_solver(object):
         #   Arrays for lambda' and s' derivative of the parameters
         self.lp = np.empty(self.n_iter,dtype=object)
         self.sp = np.empty(self.n_iter,dtype=object)
-
-        return
     
     #   Function to display results from AIM algorithm
-    def aim_display(self, sols, display_all):
+    def aim_display(self, sols, display_all, n, n_modes = 4):
+
+        print("\n*** AIM ITERATION n=" + str(n) + " ***\n")
 
         #   Display all solutions
         if (display_all == True): print("All solutions: " + "\n" + str(sols) + "\n")
@@ -121,20 +82,16 @@ class aim_solver(object):
         sols_sorted = sorted(f_sols, key = lambda x: sym.Abs(sym.im(x)))
         #   Display sorted solution by mode number (n)
         for i in range(len(sols_sorted)):
-            print("w_" + str(i) + " = " +  str(sols_sorted[i]))
-
-        return
+            if (i < n_modes): print("w_" + str(i) + " = " +  str(sols_sorted[i]))
     
-    #   AIM algorithm solver (default solver sympy.nroots, display_all true by default)
-    def aim_solve(self, display_all = "True", solver="num", print_delta=False):
+    #   Solve via AIM algorithm
+    def aim_solve(self, display_all = False, solver = "num", print_delta = False):
 
         for n in range(1, self.n_iter):
 
-            print("\n*** AIM ITERATION n=" + str(n) + " ***\n")
-
-            #   Calculate the previous derivatives
-            self.lp[n-1] = sym.diff(self.l[n-1],self.x)
-            self.sp[n-1] = sym.diff(self.s[n-1],self.x)
+            #   Calculate the previous derivatives (via symengine)
+            self.lp[n-1] = se.diff(self.l[n-1],self.x)
+            self.sp[n-1] = se.diff(self.s[n-1],self.x)
 
             #   Calculate the new parameters lambda_n and s_n
             #   Using the previous lambda_n-1, s_n-1, and derivatives lambda'_n-1 and s'_n-1
@@ -143,24 +100,18 @@ class aim_solver(object):
 
             #   Quantization condition delta / characteristic polynomial after substitution
             d = (self.s[n]*self.l[n-1] - self.s[n-1]*self.l[n]).subs(self.x,self.x0)
-            #   "Normalize" quantization condition (so that we don't get extremely high coefficients)
-            d_coeff = ( sym.Poly(d, self.w).all_coeffs() )
-            d = d / d_coeff[0]
+            #   "Normalize" quantization condition
+            d = d / ( sym.Poly(d, self.w).all_coeffs() )[0]
+
+            #   Display characteristic polynomial if needed
             if (print_delta == True): print(d.expand())
 
             #   Algebraic equation solver (via sympy)
-            if (solver == "alg"):
-
-                sols = sym.solve(d) #   Solve the characteristic polynomial
-                self.aim_display(sols, display_all) #   Display the solution for each iteration
-            
+            if (solver == "alg"): sols = sym.solve(d)
             #   Numeric polynomial root solver (via sympy)
-            if (solver == "num"):
-
-                #   Construct a sympy polynomial
-                d_pol = sym.Poly(d, self.w)
-                sols = sym.nroots(d_pol) #   Find roots of characteristic polynomial
-                self.aim_display(sols, display_all) #   Display the solution for each iteration
+            if (solver == "num"): sols = sym.nroots(sym.Poly(d, self.w), n=8, maxsteps=500, cleanup=True)
+            #   Display the solution for each iteration
+            self.aim_display(sols, display_all, n) 
 
     '''
     IAIM (improved AIM) algorithm: 
@@ -170,18 +121,25 @@ class aim_solver(object):
     -   Compute the necessary coefficients using the recursion relations
     -   From the coefficients in the first row in the two last columns,
         apply the quantization condition
-    -   Solve the obtained polynomial in w (omega) algebraically
-        and filter solutions
+    -   Solve the obtained polynomial in w (omega) and filter solutions
     ''' 
 
     #FUNCTION SERIES EXPANSION, REMOVE HIGHER ORDER, RETURN ARRAY WITH COEFFICIENTS
     #Params: func. a, variable x, around point x0, order N (fixed)
     def iaim_series_coeff(self,a,x,x0):
 
+        #DEBUG
+        print("Computing series expansion")
+        start = time.time()
+
         a_series = sym.series(a,x,x0,self.n_iter).removeO().expand()
-        coeff = np.array(a_series.subs(x,x0))
+        coeff = np.array(a_series.subs(x,x0).expand())
         for i in range(1,self.n_iter):
             coeff = np.append(coeff, a_series.coeff(x**i))
+
+        end = time.time()
+
+        print(end - start)
 
         return coeff
 
@@ -193,12 +151,10 @@ class aim_solver(object):
         #   First column initialized to coefficients of series expansion
         self.C[:,0] = self.iaim_series_coeff(self.lambda_0,self.x,self.x0)
         self.D[:,0] = self.iaim_series_coeff(self.s_0,self.x,self.x0)
-
-        return
     
-    def iaim_display(self, sols, display_all):
+    def iaim_display(self, sols, display_all, n, n_modes = 10):
 
-        print("\n*** IAIM ITERATIONS n=" + str(self.n_iter) + "***")
+        print("\n*** IAIM ITERATION n=" + str(n) + " ***")
 
         #   Display all solutions
         if (display_all == True): print("\nAll solutions:" + str(sols))
@@ -216,46 +172,39 @@ class aim_solver(object):
         sols_sorted = sorted(f_sols, key = lambda x: sym.Abs(sym.im(x)))
         #   Display sorted solution by mode number (n)
         for i in range(len(sols_sorted)):
-            print("w_" + str(i) + " = " +  str(sols_sorted[i]))
+            if (i < n_modes): print("w_" + str(i) + " = " +  str(sols_sorted[i]))
 
-        return
-    
-    def iaim_solve(self, solver="num", display_all=True, print_delta=False):
+    #   Solve via IAIM algorithm
+    def iaim_solve(self, solver="num", display_all=False, print_delta=False):
 
         #   Compute iteratively coefficients / matrix elements
         for n in range(0,self.n_iter-1):
+
+            #DEBUG
+            print("Computing matrix elements for column " + str(n))
+            
             for i in range(0,self.n_iter):
                 if (i+1 == self.n_iter):
                     self.D[i,n+1] = 0
-                    self.C[i,n+1] = self.D[i,n]
+                    self.C[i,n+1] = (self.D[i,n]).expand()
                 else:
-                    self.D[i,n+1] = (i+1)*self.D[i+1,n]
-                    self.C[i,n+1] = (i+1)*self.C[i+1,n]+self.D[i,n]
+                    self.D[i,n+1] = ((i+1)*self.D[i+1,n]).expand()
+                    self.C[i,n+1] = ((i+1)*self.C[i+1,n]+self.D[i,n]).expand()
                 for k in range(0,i+1):
-                    self.C[i,n+1] = self.C[i,n+1] + self.C[k,0]*self.C[i-k,n]
-                    self.D[i,n+1] = self.D[i,n+1] + self.D[k,0]*self.C[i-k,n]
+                    self.C[i,n+1] = (self.C[i,n+1] + self.C[k,0]*self.C[i-k,n]).expand()
+                    self.D[i,n+1] = (self.D[i,n+1] + self.D[k,0]*self.C[i-k,n]).expand()
 
-        #   Apply quantization condition / characteristic polynomial
-        d = self.D[0,n]*self.C[0,n-1] - self.D[0,n-1]*self.C[0,n]
-        #   "Normalize" quantization condition (so that we don't get extremely high coefficients)
-        d_coeff = ( sym.Poly(d, self.w).all_coeffs() )
-        d = d / d_coeff[0]
-        if (print_delta == True): print(d.expand())
+        #   For each iteration compute the quantization condition and obtain modes
+        for n in range(0, self.n_iter-1):
 
-        #   Algebraic equation solver (via sympy)
-        if (solver == "alg"):
+            #   Apply quantization condition and find characteristic polynomial
+            d = (self.D[0,n]*self.C[0,n-1] - self.D[0,n-1]*self.C[0,n]).expand()
+            if (print_delta == True): print(d.expand())
 
-            sols = sym.solve(d) #   Solve the characteristic polynomial
+            #   Algebraic equation solver (via sympy)
+            if (solver == "alg"): sols = sym.solve(d)
 
-            self.iaim_display(sols, display_all) #   Display the solution for each iteration
-            
-        #   Numeric polynomial root solver (via sympy)
-        if (solver == "num"):
+            #   Numeric polynomial root solver (via sympy)
+            if (solver == "num"): sols = sym.nroots(sym.Poly(d, self.w),n=8, maxsteps=500, cleanup=True)
 
-            #   Construct a sympy polynomial
-            d_pol = sym.Poly(d, self.w)
-            sols = sym.nroots(d_pol, n=8, maxsteps=500, cleanup=True) #   Find roots of characteristic polynomial
-            self.iaim_display(sols, display_all) #   Display the solution for each iteration
-    
-
-        return
+            self.iaim_display(sols, display_all, n) #   Display the solution for each iteration
