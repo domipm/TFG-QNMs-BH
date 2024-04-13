@@ -5,6 +5,8 @@ import time             #   Used to calculate computation times in critical part
                         #   (better to do it in main code)
 import symengine as se  #   Used for derivatives (faster than sympy)
 
+import mpmath as mp     #   Used for precision handling
+
 #   Supposedly faster/more precise, unused for now
 import flint as fl
 
@@ -63,7 +65,7 @@ class aim_solver(object):
         self.sp = np.empty(self.n_iter,dtype=object)
     
     #   Function to display results from AIM algorithm
-    def aim_display(self, sols, display_all, n, n_modes = 4):
+    def aim_display(self, sols, display_all, n, n_modes = 100):
 
         print("\n*** AIM ITERATION n=" + str(n) + " ***\n")
 
@@ -83,7 +85,7 @@ class aim_solver(object):
         #   Display sorted solution by mode number (n)
         for i in range(len(sols_sorted)):
             if (i < n_modes): print("w_" + str(i) + " = " +  str(sols_sorted[i]))
-    
+
     #   Solve via AIM algorithm
     def aim_solve(self, display_all = False, solver = "num", print_delta = False):
 
@@ -109,7 +111,7 @@ class aim_solver(object):
             #   Algebraic equation solver (via sympy)
             if (solver == "alg"): sols = sym.solve(d)
             #   Numeric polynomial root solver (via sympy)
-            if (solver == "num"): sols = sym.nroots(sym.Poly(d, self.w), n=8, maxsteps=500, cleanup=True)
+            if (solver == "num"): sols = sym.nroots(sym.Poly(d, self.w), n=8, maxsteps=1000, cleanup=True)
             #   Display the solution for each iteration
             self.aim_display(sols, display_all, n) 
 
@@ -132,10 +134,19 @@ class aim_solver(object):
         print("Computing series expansion")
         start = time.time()
 
-        a_series = sym.series(a,x,x0,self.n_iter).removeO().expand()
-        coeff = np.array(a_series.subs(x,x0).expand())
+        # Compute series via symengine (faster and more precise, coefficients given as rational numbers)
+        a_series = se.series(a, x, x0, self.n_iter).expand()
+        coeff = np.array( sym.S( a_series.coeff(x,0).expand() ), dtype=object )
         for i in range(1,self.n_iter):
-            coeff = np.append(coeff, a_series.coeff(x**i))
+            coeff = np.append(coeff, sym.S( a_series.coeff(x,i) ) )
+        print(coeff)
+
+        # Compute series via sympy (slower and less precise, coefficients given as float)
+        #a_series = sym.series(a,x,x0,self.n_iter).removeO().expand()
+        # Numpy array of coefficients containing sympy objects
+        #coeff = np.array(a_series.subs(x,x0).expand(), dtype=object)
+        #for i in range(1,self.n_iter):
+        #    coeff = np.append(coeff, a_series.coeff(x**i))
 
         end = time.time()
 
@@ -180,7 +191,7 @@ class aim_solver(object):
         #   Compute iteratively coefficients / matrix elements
         for n in range(0,self.n_iter-1):
 
-            #DEBUG
+            # Debugging info
             print("Computing matrix elements for column " + str(n))
             
             for i in range(0,self.n_iter):

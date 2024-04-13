@@ -1,5 +1,5 @@
 testing.py
 *.pyc
 tempCodeRunnerFile.py
-results.txt
-calculations.ipynb
+results*.txt
+calculations*.ipynb

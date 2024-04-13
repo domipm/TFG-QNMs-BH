@@ -9,7 +9,7 @@ import aim_qnm as aim
 #Complex variable
 I = sym.I
 #Number of iterations to perform
-n = 9
+n = 8
 
 #Symbolic variable definitions
 y = sym.symbols("y", real=True)
@@ -57,7 +57,7 @@ print("\nComputation time (AIM Method): ", str(stop-start) + "\n")
 start = time.time()
 
 aim.iaim_init() #Initialize IAIM algorithm with same parameters as AIM class object
-aim.iaim_solve(solver="num")
+aim.iaim_solve(solver="num", print_delta = True)
 
 stop = time.time()
 
