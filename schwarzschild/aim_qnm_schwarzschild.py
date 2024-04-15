@@ -9,7 +9,7 @@ import aim_qnm as aim
 #Complex variable
 I = sym.I
 #Number of iterations to perform
-n = 25
+n = 50
 
 #Symbolic variable definitions
 y = sym.symbols("y", real=True)
@@ -28,6 +28,7 @@ def max_point(m,l,s):
 #Where to evaluate (truncate decimals)
 y0 = max_point(1,2,0)
 y0 = 0.322427767917328
+y0 = 0
 print(y0)
 
 #Asymptotically Flat Schwarzschild Initial Parameters (lambda_0 and s_0)
@@ -59,7 +60,7 @@ print("\nComputation time (AIM Method): ", str(stop-start) + "\n")
 start = time.time()
 
 aim.iaim_init() #Initialize IAIM algorithm with same parameters as AIM class object
-aim.iaim_solve(solver="mpnum", print_delta = True)
+aim.iaim_solve(solver="mpnum", print_delta = False)
 
 stop = time.time()
 
