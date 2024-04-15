@@ -36,7 +36,7 @@ print("\n- Computation time (AIM Method): ", str(stop-start))
 start = time.time()
 
 aim.iaim_init() #Initialize IAIM algorithm with same parameters as AIM class object
-aim.iaim_solve(solver="mpnum", display_all=False, print_delta=False)
+aim.iaim_solve(solver="mpnum")
 
 stop = time.time()
 

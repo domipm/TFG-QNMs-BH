@@ -173,8 +173,6 @@ class aim_solver(object):
 
         end = time.time()
 
-        print(end - start)
-
         return coeff
 
     def iaim_init(self):
