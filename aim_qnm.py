@@ -1,8 +1,6 @@
 #   Importing required libraries
 import numpy as np      #   Used for numerical calculations
 import sympy as sym     #   Used for symbolic calculations: Series expansion,
-import time             #   Used to calculate computation times in critical parts
-                        #   (better to do it in main code)
 import symengine as se  #   Used for derivatives (faster than sympy)
 
 import mpmath as mp     #   Used for precision handling
@@ -65,7 +63,7 @@ class aim_solver(object):
         self.sp = np.empty(self.n_iter,dtype=object)
     
     #   Function to display results from AIM algorithm
-    def aim_display(self, sols, display_all, n, n_modes = 100):
+    def aim_display(self, sols, display_all, n, n_modes = 6):
 
         print("\n*** AIM ITERATION n=" + str(n) + " ***\n")
 
@@ -155,23 +153,12 @@ class aim_solver(object):
 
     #   FUNCTION SERIES EXPANSION, REMOVE HIGHER ORDER, RETURN ARRAY WITH COEFFICIENTS
     #   Params: func. a, variable x, around point x0, order N (fixed)
-    def iaim_series_coeff(self,a,x,x0):
+    def iaim_series_coeff(self, a, x, x0):
 
-        start = time.time()
-
-        #   Compute series via symengine
         a_series = se.series(a, x, x0, self.n_iter).expand()
         coeff = np.zeros(self.n_iter, dtype=object)
         for i in range(0,self.n_iter):
             coeff[i] = a_series.coeff(x,i)
-
-        #   Compute series via sympy
-        #a_series = sym.series(a,x,x0,self.n_iter).removeO().expand()
-        #coeff = np.array(a_series.subs(x,x0).expand().evalf(500), dtype=object)
-        #for i in range(1,self.n_iter):
-        #    coeff = np.append(coeff, a_series.coeff(x**i).evalf(500))
-
-        end = time.time()
 
         return coeff
 
@@ -187,7 +174,7 @@ class aim_solver(object):
         self.C[:,0] = self.iaim_series_coeff(self.lambda_0,self.x,self.x0)
         self.D[:,0] = self.iaim_series_coeff(self.s_0,self.x,self.x0)
     
-    def iaim_display(self, sols, display_all, n, n_modes = 100):
+    def iaim_display(self, sols, display_all, n, n_modes = 6):
 
         print("\n*** IAIM ITERATION n=" + str(n) + " ***")
 
