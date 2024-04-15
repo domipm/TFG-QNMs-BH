@@ -34,7 +34,7 @@ class aim_solver(object):
         self.lambda_0 = lambda_0
         self.s_0 = s_0
         #   Number of iterations (size of arrays / matrices) to perform
-        self.n_iter = n_iter
+        self.n_iter = n_iter+1
         #   Position coordinate and point of evaluation
         self.x = x
         self.x0 = x0
@@ -157,7 +157,6 @@ class aim_solver(object):
     #   Params: func. a, variable x, around point x0, order N (fixed)
     def iaim_series_coeff(self,a,x,x0):
 
-        print("Computing series expansion") # Debug
         start = time.time()
 
         #   Compute series via symengine
@@ -180,6 +179,9 @@ class aim_solver(object):
 
     def iaim_init(self):
 
+        #   Extra iteration to match AIM's solutions
+        self.n_iter = self.n_iter + 1
+
         #   Matrix of coefficients needed
         self.C = np.zeros((self.n_iter,self.n_iter),dtype=object)
         self.D = np.zeros((self.n_iter,self.n_iter),dtype=object)
@@ -189,7 +191,7 @@ class aim_solver(object):
     
     def iaim_display(self, sols, display_all, n, n_modes = 100):
 
-        print("\n*** IAIM ITERATION n=" + str(n+1) + " ***")
+        print("\n*** IAIM ITERATION n=" + str(n) + " ***")
 
         #   Display all solutions
         if (display_all == True): print("\nAll solutions:" + str(sols))
@@ -216,11 +218,8 @@ class aim_solver(object):
 
         #   Compute iteratively coefficients / matrix elements
         for n in range(0,self.n_iter-1):
-
-            # Debugging info
-            print("Computing matrix elements for column " + str(n))
             
-            for i in range(0,self.n_iter):
+            for i in range(0, self.n_iter):
                 if (i+1 == self.n_iter):
                     self.D[i,n+1] = 0
                     self.C[i,n+1] = (self.D[i,n]).expand()
