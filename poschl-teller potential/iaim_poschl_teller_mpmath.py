@@ -24,7 +24,7 @@ start_T = time.time() #"Stopwatch" begin
 
 #Number of iterations to perform 
 #(add 2 with respect to AIM to obtain results up to same n index)
-N = 4
+N = 15 # FAILS AT 8 ITERATIONS
 
 #Symbolic variables definition
 y = sym.symbols("y", real=True)
@@ -36,10 +36,10 @@ I = sym.I
 #Params: func. a, variable x, around point x0, order N (fixed)
 def series_coeff(a,x,x0):
 
-    a_series = sym.series(a,x,x0,N).removeO()
-    coeff = np.array(a_series.subs(x,x0))
+    a_series = se.series(a, x, x0, N).expand()
+    coeff = np.array( sym.S( a_series.coeff(x,0).expand() ), dtype=object )
     for i in range(1,N):
-        coeff = np.append(coeff, a_series.coeff(x**i))
+        coeff = np.append(coeff, sym.S( a_series.coeff(x,i) ) )
 
     return coeff
 
@@ -55,6 +55,8 @@ C[:,0] = series_coeff(l0,y,0)
 D[:,0] = series_coeff(s0,y,0)
 
 #Calculate iteratively coefficients of C and D matrices
+# PRECISION ERRORS MAIN SOURCE SHOULD BE HERE
+# WE DRAG FLOATING POINT PRECISION ERRORS UP TO FINAL D POLYNOMIAL
 for n in range(0,N-1):
     for i in range(0,N):
         if (i+1 == N):
@@ -68,19 +70,19 @@ for n in range(0,N-1):
             D[i,n+1] = D[i,n+1] + D[k,0]*C[i-k,n]
 
 #Apply quantization condition to obtain polynomial in omega
-d = D[0,n]*C[0,n-1] - D[0,n-1]*C[0,n]
-
-# STILL EXACT UP TO THIS POINT (AT LEAST WHEN EVALUATING AT 0)
+d = (D[0,n]*C[0,n-1] - D[0,n-1]*C[0,n]).expand()
 
 #Find roots of the polynomial (algebraically) and display solutions/filtered solutions
 #sols = sym.solve(d,w)                  #Algebraic root finder via sympy
 #sols = sym.nroots(sym.Poly(d, w), n=8) #Numerical root finder via sympy
 
-dpoly = sym.Poly(d, w)
-
-print(dpoly)
-
-exit()
+d_pol = sym.Poly(d, w)
+dpol_coeff = d_pol.all_coeffs()
+# Convert each coefficient into mpmath complex
+for i in range(len(dpol_coeff)):
+    dpol_coeff[i] = mp.mpc(dpol_coeff[i])
+    
+sols = mp.polyroots(dpol_coeff, maxsteps=10000, extraprec=150)
 
 print("\nAll solutions:")
 print(sols)

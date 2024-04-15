@@ -7,10 +7,8 @@ import aim_qnm as aim
 
 #Complex variable
 I = sym.I
-#Number of iterations to perform 
-#(IAIM begins to fail at 8 iterations, first overtones more precise than others, 4th decimal error in 2nd overtone at 15 iterations)
-#(AIM begins to fail at 9 iterations)
-n = 10
+#Number of iterations to perform
+n = 100
 #Where to evaluate the functions
 y0 = 0
 #Symbolic variable definitions
@@ -27,7 +25,7 @@ start = time.time()
 
 aim = aim.aim_solver(l0,s0,y,y0,n)
 #aim.aim_init()
-#aim.aim_solve()
+#aim.aim_solve(solver="mpnum")
 
 stop = time.time()
 
@@ -40,7 +38,7 @@ stop = time.time()
 start = time.time()
 
 aim.iaim_init() #Initialize IAIM algorithm with same parameters as AIM class object
-aim.iaim_solve(solver="num", display_all=False, print_delta=False)
+aim.iaim_solve(solver="mpnum", display_all=False, print_delta=False)
 
 stop = time.time()
 

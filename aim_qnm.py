@@ -10,6 +10,9 @@ import mpmath as mp     #   Used for precision handling
 #   Supposedly faster/more precise, unused for now
 import flint as fl
 
+# Set mpmath precision and solver parameters
+mp.mp.dps = 100
+
 '''
 Improved AIM algorithm (IAIM) taylored for computing quasinormal modes (QNMs)
 of black holes (BHs).
@@ -89,6 +92,8 @@ class aim_solver(object):
     #   Solve via AIM algorithm
     def aim_solve(self, display_all = False, solver = "num", print_delta = False):
 
+        w = sym.symbols("\omega") #  Symbol representing complex frequency of qnms
+
         for n in range(1, self.n_iter):
 
             #   Calculate the previous derivatives (via symengine)
@@ -112,6 +117,31 @@ class aim_solver(object):
             if (solver == "alg"): sols = sym.solve(d)
             #   Numeric polynomial root solver (via sympy)
             if (solver == "num"): sols = sym.nroots(sym.Poly(d, self.w), n=8, maxsteps=1000, cleanup=True)
+            # Numerical polynomial root solver (via mpmath, faster and more precise)
+            if (solver == "mpnum"):
+
+                # Number of digits to evalf sympy expressions
+                dps_evalf = 500
+                # Maximum number of steps of solver
+                nmax_solve = 10000
+                # Extra precision of solver
+                xprec_solve = 1000
+                # Number of digits to print out
+                dps_print = 10
+
+                d_pol = sym.Poly(d, w)
+                dpol_coeff = d_pol.all_coeffs()
+                # Convert each coefficient into mpmath complex
+                for i in range(len(dpol_coeff)):
+                    # Evaluate sympy expression with 100 decimals gives precision up to 14 iterations
+                    dpol_coeff[i] = mp.mpc(dpol_coeff[i].evalf(dps_evalf))
+
+                sols = mp.polyroots(dpol_coeff, maxsteps=nmax_solve, extraprec=xprec_solve)
+
+                # Write solutions with sig = 10 digits
+                for i in range(len(sols)): 
+                    sols[i] = mp.nstr(sols[i], dps_print)
+                    
             #   Display the solution for each iteration
             self.aim_display(sols, display_all, n) 
 
@@ -126,27 +156,24 @@ class aim_solver(object):
     -   Solve the obtained polynomial in w (omega) and filter solutions
     ''' 
 
-    #FUNCTION SERIES EXPANSION, REMOVE HIGHER ORDER, RETURN ARRAY WITH COEFFICIENTS
-    #Params: func. a, variable x, around point x0, order N (fixed)
+    #   FUNCTION SERIES EXPANSION, REMOVE HIGHER ORDER, RETURN ARRAY WITH COEFFICIENTS
+    #   Params: func. a, variable x, around point x0, order N (fixed)
     def iaim_series_coeff(self,a,x,x0):
 
-        #DEBUG
-        print("Computing series expansion")
+        print("Computing series expansion") # Debug
         start = time.time()
 
-        # Compute series via symengine (faster and more precise, coefficients given as rational numbers)
+        #   Compute series via symengine
         a_series = se.series(a, x, x0, self.n_iter).expand()
-        coeff = np.array( sym.S( a_series.coeff(x,0).expand() ), dtype=object )
-        for i in range(1,self.n_iter):
-            coeff = np.append(coeff, sym.S( a_series.coeff(x,i) ) )
-        print(coeff)
+        coeff = np.zeros(self.n_iter, dtype=object)
+        for i in range(0,self.n_iter):
+            coeff[i] = a_series.coeff(x,i)
 
-        # Compute series via sympy (slower and less precise, coefficients given as float)
+        #   Compute series via sympy
         #a_series = sym.series(a,x,x0,self.n_iter).removeO().expand()
-        # Numpy array of coefficients containing sympy objects
-        #coeff = np.array(a_series.subs(x,x0).expand(), dtype=object)
+        #coeff = np.array(a_series.subs(x,x0).expand().evalf(500), dtype=object)
         #for i in range(1,self.n_iter):
-        #    coeff = np.append(coeff, a_series.coeff(x**i))
+        #    coeff = np.append(coeff, a_series.coeff(x**i).evalf(500))
 
         end = time.time()
 
@@ -163,9 +190,9 @@ class aim_solver(object):
         self.C[:,0] = self.iaim_series_coeff(self.lambda_0,self.x,self.x0)
         self.D[:,0] = self.iaim_series_coeff(self.s_0,self.x,self.x0)
     
-    def iaim_display(self, sols, display_all, n, n_modes = 10):
+    def iaim_display(self, sols, display_all, n, n_modes = 100):
 
-        print("\n*** IAIM ITERATION n=" + str(n) + " ***")
+        print("\n*** IAIM ITERATION n=" + str(n+1) + " ***")
 
         #   Display all solutions
         if (display_all == True): print("\nAll solutions:" + str(sols))
@@ -188,6 +215,8 @@ class aim_solver(object):
     #   Solve via IAIM algorithm
     def iaim_solve(self, solver="num", display_all=False, print_delta=False):
 
+        w = sym.symbols("\omega") #  Symbol representing complex frequency of qnms
+
         #   Compute iteratively coefficients / matrix elements
         for n in range(0,self.n_iter-1):
 
@@ -206,10 +235,11 @@ class aim_solver(object):
                     self.D[i,n+1] = (self.D[i,n+1] + self.D[k,0]*self.C[i-k,n]).expand()
 
         #   For each iteration compute the quantization condition and obtain modes
-        for n in range(0, self.n_iter-1):
+        for n in range(1, self.n_iter-1):
 
             #   Apply quantization condition and find characteristic polynomial
             d = (self.D[0,n]*self.C[0,n-1] - self.D[0,n-1]*self.C[0,n]).expand()
+
             if (print_delta == True): print(d.expand())
 
             #   Algebraic equation solver (via sympy)
@@ -217,5 +247,30 @@ class aim_solver(object):
 
             #   Numeric polynomial root solver (via sympy)
             if (solver == "num"): sols = sym.nroots(sym.Poly(d, self.w),n=8, maxsteps=500, cleanup=True)
+
+            # Numerical polynomial root solver (via mpmath, faster and more precise)
+            if (solver == "mpnum"):
+
+                # Number of digits to evalf sympy expressions
+                dps_evalf = 100
+                # Maximum number of steps of solver
+                nmax_solve = 10000
+                # Extra precision of solver
+                xprec_solve = 100
+                # Number of digits to print out
+                dps_print = 10
+
+                d_pol = sym.Poly(d, w)
+                dpol_coeff = d_pol.all_coeffs()
+                # Convert each coefficient into mpmath complex
+                for i in range(len(dpol_coeff)):
+                    # Evaluate sympy expression with 100 decimals gives precision up to 14 iterations
+                    dpol_coeff[i] = mp.mpc(dpol_coeff[i].evalf(dps_evalf))
+
+                sols = mp.polyroots(dpol_coeff, maxsteps=nmax_solve, extraprec=xprec_solve)
+
+                # Write solutions with sig = 10 digits
+                for i in range(len(sols)): 
+                    sols[i] = mp.nstr(sols[i], dps_print)
 
             self.iaim_display(sols, display_all, n) #   Display the solution for each iteration
