@@ -85,7 +85,7 @@ class aim_solver(object):
             if (i < n_modes): print("w_" + str(i) + " = " +  str(sols_sorted[i]))
 
     #   Solve via AIM algorithm
-    def aim_solve(self, display_all = False, solver = "num", print_delta = False):
+    def aim_solve(self, display_all = False, solver = "mpnum", print_delta = False):
 
         w = sym.symbols("\omega") #  Symbol representing complex frequency of qnms
 
@@ -122,14 +122,12 @@ class aim_solver(object):
                 # Number of digits to print out
                 dps_print = 10
 
-                d_pol = sym.Poly(d, w)
-                dpol_coeff = d_pol.all_coeffs()
+                d_coeff = sym.Poly(d, w).all_coeffs()
                 # Convert each coefficient into mpmath complex
-                for i in range(len(dpol_coeff)):
-                    # Evaluate sympy expression with 100 decimals gives precision up to 14 iterations
-                    dpol_coeff[i] = mp.mpc(dpol_coeff[i].evalf(dps_evalf))
+                for i in range(len(d_coeff)):
+                    d_coeff[i] = mp.mpc(d_coeff[i].evalf(dps_evalf))
 
-                sols = mp.polyroots(dpol_coeff, maxsteps=nmax_solve, extraprec=xprec_solve)
+                sols = mp.polyroots(d_coeff, maxsteps=nmax_solve, extraprec=xprec_solve)
 
                 # Write solutions with sig = 10 digits
                 for i in range(len(sols)): 
@@ -182,7 +180,7 @@ class aim_solver(object):
         #   Filter solutions by positive real and negative imaginary part
         f_sols = []
         for i in range(len(sols)):
-            if sym.re(sols[i]) > 0 and  sym.im(sols[i]) < 0:
+            if sym.re(sols[i]) > 0 and sym.im(sols[i]) < 0:
                 f_sols.append(sols[i])
 
         #   Display filtered (unordered) solutions
@@ -195,7 +193,7 @@ class aim_solver(object):
             if (i < n_modes): print("w_" + str(i) + " = " +  str(sols_sorted[i]))
 
     #   Solve via IAIM algorithm
-    def iaim_solve(self, solver="num", display_all=False, print_delta=False):
+    def iaim_solve(self, solver="mpnum", display_all=False, print_delta=False):
 
         w = sym.symbols("\omega") #  Symbol representing complex frequency of qnms
 
