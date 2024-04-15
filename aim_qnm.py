@@ -102,8 +102,6 @@ class aim_solver(object):
 
             #   Quantization condition delta / characteristic polynomial after substitution
             d = (self.s[n]*self.l[n-1] - self.s[n-1]*self.l[n]).subs(self.x,self.x0)
-            #   "Normalize" quantization condition
-            d = d / ( sym.Poly(d, self.w).all_coeffs() )[0]
 
             #   Display characteristic polynomial if needed
             if (print_delta == True): print(d.expand())
