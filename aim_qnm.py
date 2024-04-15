@@ -7,9 +7,6 @@ import symengine as se  #   Used for derivatives (faster than sympy)
 
 import mpmath as mp     #   Used for precision handling
 
-#   Supposedly faster/more precise, unused for now
-import flint as fl
-
 # Set mpmath precision and solver parameters
 mp.mp.dps = 100
 
