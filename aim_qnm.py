@@ -155,6 +155,7 @@ class aim_solver(object):
         coeff = np.zeros(self.n_iter, dtype=object)
         for i in range(0,self.n_iter):
             coeff[i] = a_series.coeff(x,i)
+            #coeff[i] = sym.nsimplify(sym.S((a_series.expand().coeff(x,i))))
 
         return coeff
 

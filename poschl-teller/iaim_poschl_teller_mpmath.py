@@ -18,13 +18,13 @@ IAIM (improved AIM) algorithm:
 '''
 
 #Precision of mpmath
-mp.mp.dps = 10
+mp.mp.dps = 50
 
 start_T = time.time() #"Stopwatch" begin
 
 #Number of iterations to perform 
 #(add 2 with respect to AIM to obtain results up to same n index)
-N = 15 # FAILS AT 8 ITERATIONS
+N = 6 # FAILS AT 8 ITERATIONS
 
 #Symbolic variables definition
 y = sym.symbols("y", real=True)
@@ -40,19 +40,39 @@ def series_coeff(a,x,x0):
     coeff = np.array( sym.S( a_series.coeff(x,0).expand() ), dtype=object )
     for i in range(1,N):
         coeff = np.append(coeff, sym.S( a_series.coeff(x,i) ) )
-
     return coeff
 
 #Initial parameters definition
 l0 = (2*y*(1-I*w))/(1-y**2)
 s0 = (1-2*I*w-2*w**2)/(2*(1-y**2))
 
+y0 = 0
+
+l = sym.symbols("l", real=True)
+s = sym.symbols("s", real=True)
+m = sym.symbols("m", real=True)
+
+# Asymptotically Flat Schwarzschild Initial Parameters (lambda_0 and s_0)
+l0 = (4*m*I*w*(2*y**2 - 4*y + 1) - (1 - 3*y)*(1-y) ) / (y*(1-y)**2) 
+s0 = ( 16*m**2*w**2*(y-2) - 8*m*I*w*(1-y) + l*(l+1) + (1-s**2)*(1-y) ) / ( y*(1-y)**2 )
+
+# Numeric parameters (M=1, l=2, s=2)
+m_val = 1
+l_val = 2
+s_val = 2
+#Substitute
+l0 = l0.subs(m,m_val).subs(l,l_val).subs(s,s_val)
+s0 = s0.subs(m,m_val).subs(l,l_val).subs(s,s_val)
+
+y0 = 0.322427767917328
+
+
 #Matrix of coefficients needed
 C = np.zeros((N,N),dtype=object)
 D = np.zeros((N,N),dtype=object)
 #First column initialized to coefficients of series expansion
-C[:,0] = series_coeff(l0,y,0)
-D[:,0] = series_coeff(s0,y,0)
+C[:,0] = series_coeff(l0,y,y0)
+D[:,0] = series_coeff(s0,y,y0)
 
 #Calculate iteratively coefficients of C and D matrices
 # PRECISION ERRORS MAIN SOURCE SHOULD BE HERE
@@ -71,6 +91,8 @@ for n in range(0,N-1):
 
 #Apply quantization condition to obtain polynomial in omega
 d = (D[0,n]*C[0,n-1] - D[0,n-1]*C[0,n]).expand()
+
+print(d)
 
 #Find roots of the polynomial (algebraically) and display solutions/filtered solutions
 #sols = sym.solve(d,w)                  #Algebraic root finder via sympy
