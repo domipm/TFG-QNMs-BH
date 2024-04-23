@@ -2,6 +2,7 @@ testing.py
 *.pyc
 tempCodeRunnerFile.py
 results*.txt
+*.txt
 calculations*.ipynb
 log*.txt
 *.json

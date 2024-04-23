@@ -151,11 +151,9 @@ class aim_solver(object):
     #   Params: func. a, variable x, around point x0, order N (fixed)
     def iaim_series_coeff(self, a, x, x0):
 
-        a_series = se.series(a, x, x0, self.n_iter).expand()
-        coeff = np.zeros(self.n_iter, dtype=object)
-        for i in range(0,self.n_iter):
-            coeff[i] = a_series.coeff(x,i)
-            #coeff[i] = sym.nsimplify(sym.S((a_series.expand().coeff(x,i))))
+        coeff = np.empty(self.n_iter, dtype=object)
+        for i in range(0, self.n_iter):
+            coeff[i] = se.diff(a, x, i).subs(x, x0)/sym.factorial(i)
 
         return coeff
 
@@ -200,18 +198,13 @@ class aim_solver(object):
 
         #   Compute iteratively coefficients / matrix elements
         for n in range(0,self.n_iter-1):
-            
-            for i in range(0, self.n_iter):
-                if (i+1 == self.n_iter):
-                    self.D[i,n+1] = 0
-                    self.C[i,n+1] = (self.D[i,n]).expand()
-                else:
-                    self.D[i,n+1] = ((i+1)*self.D[i+1,n]).expand()
-                    self.C[i,n+1] = ((i+1)*self.C[i+1,n]+self.D[i,n]).expand()
-                for k in range(0,i+1):
-                    self.C[i,n+1] = (self.C[i,n+1] + self.C[k,0]*self.C[i-k,n]).expand()
-                    self.D[i,n+1] = (self.D[i,n+1] + self.D[k,0]*self.C[i-k,n]).expand()
-
+            for i in range(0, self.n_iter - 1 - n):
+                self.D[i,n+1] = ( (i+1)*self.D[i+1,n] ).expand()
+                self.C[i,n+1] = ( (i+1)*self.C[i+1,n] + self.D[i,n] ).expand()
+                for k in range(0, i+1):
+                    self.C[i,n+1] = ( self.C[i,n+1] + self.C[k,0]*self.C[i-k,n] ).expand()
+                    self.D[i,n+1] = ( self.D[i,n+1] + self.D[k,0]*self.C[i-k,n] ).expand()
+   
         #   For each iteration compute the quantization condition and obtain modes
         for n in range(1, self.n_iter-1):
 
