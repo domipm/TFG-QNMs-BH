@@ -63,7 +63,7 @@ class aim_solver(object):
         self.sp = np.empty(self.n_iter,dtype=object)
     
     #   Function to display results from AIM algorithm
-    def aim_display(self, sols, display_all, n, n_modes = 15):
+    def aim_display(self, sols, display_all, n, n_modes = 15, parsed = False):
 
         print("\n*** AIM ITERATION n=" + str(n) + " ***\n")
 
@@ -82,7 +82,9 @@ class aim_solver(object):
         sols_sorted = sorted(f_sols, key = lambda x: sym.Abs(sym.im(x)))
         #   Display sorted solution by mode number (n)
         for i in range(len(sols_sorted)):
-            if (i < n_modes): print("w_" + str(i) + " = " +  str(sols_sorted[i]))
+            if (i < n_modes): 
+                if (parsed == True): print( str( float(mp.re(sols_sorted[i] ))) + "\t" + str( float(mp.im(sols_sorted[i]) )) )       
+                else: print("w_" + str(i) + " = " +  str(sols_sorted[i]))
 
     #   Solve via AIM algorithm
     def aim_solve(self, display_all = False, solver = "mpnum", print_delta = False):
@@ -134,7 +136,7 @@ class aim_solver(object):
                     sols[i] = mp.nstr(sols[i], dps_print)
                     
             #   Display the solution for each iteration
-            self.aim_display(sols, display_all, n) 
+            self.aim_display(sols, display_all, n, parsed = False) 
 
     '''
     IAIM (improved AIM) algorithm: 
