@@ -63,7 +63,7 @@ class aim_solver(object):
         self.sp = np.empty(self.n_iter,dtype=object)
     
     #   Function to display results from AIM algorithm
-    def aim_display(self, sols, display_all, n, n_modes = 6):
+    def aim_display(self, sols, display_all, n, n_modes = 15):
 
         print("\n*** AIM ITERATION n=" + str(n) + " ***\n")
 
@@ -114,11 +114,11 @@ class aim_solver(object):
             if (solver == "mpnum"):
 
                 # Number of digits to evalf sympy expressions
-                dps_evalf = 500
+                dps_evalf = 25
                 # Maximum number of steps of solver
                 nmax_solve = 10000
                 # Extra precision of solver
-                xprec_solve = 1000
+                xprec_solve = 100
                 # Number of digits to print out
                 dps_print = 10
 
@@ -169,7 +169,7 @@ class aim_solver(object):
         self.C[:,0] = self.iaim_series_coeff(self.lambda_0,self.x,self.x0)
         self.D[:,0] = self.iaim_series_coeff(self.s_0,self.x,self.x0)
     
-    def iaim_display(self, sols, display_all, n, n_modes = 6):
+    def iaim_display(self, sols, display_all, n, n_modes = 15, parsed=False):
 
         print("\n*** IAIM ITERATION n=" + str(n) + " ***")
 
@@ -189,7 +189,9 @@ class aim_solver(object):
         sols_sorted = sorted(f_sols, key = lambda x: sym.Abs(sym.im(x)))
         #   Display sorted solution by mode number (n)
         for i in range(len(sols_sorted)):
-            if (i < n_modes): print("w_" + str(i) + " = " +  str(sols_sorted[i]))
+            if (i < n_modes): 
+                if (parsed == True): print( str( float(mp.re(sols_sorted[i] ))) + "\t" + str( float(mp.im(sols_sorted[i]) )) )       
+                else: print("w_" + str(i) + " = " +  str(sols_sorted[i]))
 
     #   Solve via IAIM algorithm
     def iaim_solve(self, solver="mpnum", display_all=False, print_delta=False):
@@ -244,4 +246,4 @@ class aim_solver(object):
                 for i in range(len(sols)): 
                     sols[i] = mp.nstr(sols[i], dps_print)
 
-            self.iaim_display(sols, display_all, n) #   Display the solution for each iteration
+            self.iaim_display(sols, display_all, n, parsed=False) #   Display the solution for each iteration
