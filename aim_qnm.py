@@ -136,7 +136,7 @@ class aim_solver(object):
                     sols[i] = mp.nstr(sols[i], dps_print)
                     
             #   Display the solution for each iteration
-            self.aim_display(sols, display_all, n, parsed = False) 
+            self.aim_display(sols, display_all, n, parsed = True) 
 
     '''
     IAIM (improved AIM) algorithm: 
@@ -173,7 +173,7 @@ class aim_solver(object):
     
     def iaim_display(self, sols, display_all, n, n_modes = 15, parsed=False):
 
-        print("\n*** IAIM ITERATION n=" + str(n) + " ***")
+        print("\n*** IAIM ITERATION n=" + str(n) + " ***\n")
 
         #   Display all solutions
         if (display_all == True): print("\nAll solutions:" + str(sols))
@@ -248,4 +248,4 @@ class aim_solver(object):
                 for i in range(len(sols)): 
                     sols[i] = mp.nstr(sols[i], dps_print)
 
-            self.iaim_display(sols, display_all, n, parsed=False) #   Display the solution for each iteration
+            self.iaim_display(sols, display_all, n, parsed=True) #   Display the solution for each iteration
