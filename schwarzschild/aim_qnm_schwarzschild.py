@@ -49,7 +49,7 @@ stop = time.time()
 
 print("\nComputation time (AIM Method): ", str(stop-start) + "\n")
 
-# IAIM ALGORITHM (THIS ONE FAILS FOR NOW)
+# IAIM ALGORITHM
 
 start = time.time()
 
