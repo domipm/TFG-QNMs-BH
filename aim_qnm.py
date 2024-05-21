@@ -233,7 +233,7 @@ class aim_solver(object):
                 # Extra precision of solver
                 xprec_solve = 100
                 # Number of digits to print out
-                dps_print = 10
+                dps_print = 20
 
                 d_pol = sym.Poly(d, w)
                 dpol_coeff = d_pol.all_coeffs()
