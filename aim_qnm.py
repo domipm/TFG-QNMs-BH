@@ -181,7 +181,7 @@ class aim_solver(object):
         #   Filter solutions by positive real and negative imaginary part
         f_sols = []
         for i in range(len(sols)):
-            if sym.re(sols[i]) > 0 and sym.im(sols[i]) < 0:
+            if sym.re(sols[i]) > 0 and sym.im(sols[i]) < 0 and sym.re(sols[i]) < 1:
                 f_sols.append(sols[i])
 
         #   Display filtered (unordered) solutions
