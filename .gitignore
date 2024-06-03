@@ -8,3 +8,4 @@ log*.txt
 *.json
 test*
 plots/
+loops/
