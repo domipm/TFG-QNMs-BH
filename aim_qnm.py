@@ -16,6 +16,7 @@ the boundary conidtions, to be evaluated for n_iter at the evaluation point x_0.
 
 '''
 
+mp.mp.dps = 100
 
 #   Symbol representing complex frequency of qnms
 w = sym.symbols("\omega")
@@ -157,8 +158,10 @@ class aim_solver(object):
     '''
     
 
-    #   Function to initialize all arrays needed for the AIM algorithm
-    def aim_init(self):
+    #   Solve via AIM algorithm
+    def aim_solve(self, display_all = False, solver = "mpnum", print_delta = False):
+
+        #   Initialize all arrays needed for AIM algorithm
 
         #   Arrays for lambda and s parameters
         self.l = np.empty(self.n_iter, dtype=object)
@@ -169,10 +172,6 @@ class aim_solver(object):
         #   Arrays for lambda' and s' derivative of the parameters
         self.lp = np.empty(self.n_iter, dtype=object)
         self.sp = np.empty(self.n_iter, dtype=object)
-
-
-    #   Solve via AIM algorithm
-    def aim_solve(self, display_all = False, solver = "mpnum", print_delta = False):
 
         for n in range(1, self.n_iter):
 
@@ -216,12 +215,16 @@ class aim_solver(object):
         coeff = np.empty(self.n_iter, dtype=object)
         for i in range(0, self.n_iter):
             coeff[i] = se.diff(a, x, i).subs(x, x0)/sym.factorial(i)
+            print(f"Computing coefficients iteration {i}", end = "\r")
+        print("\n")
 
         return coeff
 
 
-    def iaim_init(self):
+    #   Solve via IAIM algorithm
+    def iaim_solve(self, solver="mpnum", display_all=False, print_delta=False):
 
+        #   Initialize arrays for IAIM method
         #   Extra iteration to match AIM's solutions
         self.n_iter = self.n_iter + 1
 
@@ -231,10 +234,6 @@ class aim_solver(object):
         #   First column initialized to coefficients of series expansion
         self.C[:,0] = self.iaim_series_coeff(self.lambda_0,self.x,self.x0)
         self.D[:,0] = self.iaim_series_coeff(self.s_0,self.x,self.x0)
-    
-
-    #   Solve via IAIM algorithm
-    def iaim_solve(self, solver="mpnum", display_all=False, print_delta=False):
 
         #   Compute iteratively coefficients / matrix elements
         for n in range(0,self.n_iter-1):
