@@ -10,3 +10,5 @@ test*
 *.pdf
 *.png
 /poschl-teller old
+simpson-visser/.DS_Store
+.DS_Store
